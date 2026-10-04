@@ -166,9 +166,9 @@ export default function MainScreen() {
             <Ionicons name="compass-outline" size={24} color="#A0AEC0" />
             <Text style={styles.navText}>Explore</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem}>
+          <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/profile')}>
             <Ionicons name="person-outline" size={24} color="#A0AEC0" />
-            <Text style={styles.navText}>Personal</Text>
+            <Text style={styles.navText}>Profile</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -199,6 +199,10 @@ export default function MainScreen() {
                 style={[styles.levelBtn, level.isLocked && styles.levelBtnLocked]}
                 activeOpacity={0.7}
                 disabled={level.isLocked}
+                onPress={() => {
+                  closeModal();
+                  router.push({ pathname: '/game', params: { level: level.id, title: level.title } });
+                }}
               >
                 <View style={styles.levelLeft}>
                   <Text style={styles.levelEmoji}>{level.emoji}</Text>
@@ -220,6 +224,10 @@ export default function MainScreen() {
                   style={[styles.levelBtnHalf, level.isLocked && styles.levelBtnLocked]}
                   activeOpacity={0.7}
                   disabled={level.isLocked}
+                  onPress={() => {
+                    closeModal();
+                    router.push({ pathname: '/game', params: { level: level.id, title: level.title } });
+                  }}
                 >
                   <View style={styles.levelLeft}>
                     <Text style={styles.levelEmoji}>{level.emoji}</Text>
@@ -423,7 +431,11 @@ const styles = StyleSheet.create({
     elevation: 9999,
   },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   bottomSheet: {
     backgroundColor: '#F8FAFC',
