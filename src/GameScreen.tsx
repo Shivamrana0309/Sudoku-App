@@ -35,6 +35,27 @@ export default function GameScreen() {
   const [errorToast, setErrorToast] = useState<{title: string, subtitle: string, type: 'row' | 'col' | 'box' | 'wrong', num: number} | null>(null);
   const toastAnim = React.useRef(new Animated.Value(-150)).current;
 
+  const [isGameOverModalVisible, setIsGameOverModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (mistakes >= 3) {
+      setIsGameOverModalVisible(true);
+    }
+  }, [mistakes]);
+
+  const handleRestart = () => {
+    const resetBoard = board.map(row => row.map(cell => {
+      if (cell.isInitial) return cell;
+      return { ...cell, value: 0, isError: false };
+    }));
+    setBoard(resetBoard);
+    setMistakes(0);
+    setScore(0);
+    setTime(0);
+    setHistory([]);
+    setIsGameOverModalVisible(false);
+  };
+
   useEffect(() => {
     // Determine difficulty
     let emptyCount = 30; // default Beginner
@@ -256,15 +277,23 @@ export default function GameScreen() {
     setBoard(newBoard);
   };
 
-  // Count remaining numbers
+  // Count remaining numbers and progress
+  let currentFilledCount = 0;
   const numberCounts = Array(10).fill(9);
   board.forEach(row => {
     row.forEach(cell => {
       if (cell.value !== 0 && !cell.isError) {
         numberCounts[cell.value]--;
+        if (!cell.isInitial) {
+          currentFilledCount++;
+        }
       }
     });
   });
+
+  const initialCellsCount = board.flat().filter(c => c.isInitial).length;
+  const totalToFill = 81 - initialCellsCount;
+  const progressPercentage = totalToFill > 0 ? (currentFilledCount / totalToFill) * 100 : 0;
 
   return (
     <View style={styles.root}>
@@ -407,6 +436,42 @@ export default function GameScreen() {
         </View>
 
       </SafeAreaView>
+
+      {/* Game Over Modal */}
+      {isGameOverModalVisible && (
+        <View style={styles.gameOverOverlay}>
+          <View style={styles.gameOverCard}>
+            <Text style={styles.gameOverTitle}>Game Over</Text>
+            
+            <View style={styles.progressContainer}>
+              <Text style={styles.progressText}>Current Progress</Text>
+              <View style={styles.progressBarWrapper}>
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
+                </View>
+                <Text style={styles.progressPercent}>{Math.round(progressPercentage)}%</Text>
+              </View>
+            </View>
+
+            <Text style={styles.gameOverSubtitle}>You lost the game because you made 3 mistakes</Text>
+
+            <TouchableOpacity style={styles.secondChanceBtn}>
+              <Text style={styles.secondChanceText}>Second Chance</Text>
+              <View style={styles.freeTag}>
+                <Text style={styles.freeTagText}>Free</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.secondaryBtn} onPress={handleRestart}>
+              <Text style={styles.secondaryBtnText}>Restart</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.secondaryBtn}>
+              <Text style={styles.secondaryBtnText}>New Game</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -486,6 +551,112 @@ const styles = StyleSheet.create({
   toastSubtitle: {
     fontSize: 13,
     color: '#718096',
+  },
+  gameOverOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 200,
+  },
+  gameOverCard: {
+    width: '85%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+  },
+  gameOverTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2D3748',
+    marginBottom: 20,
+  },
+  progressContainer: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#718096',
+    marginBottom: 8,
+  },
+  progressBarWrapper: {
+    width: '60%',
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressBarBg: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#CBD5E1',
+  },
+  progressPercent: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#2D3748',
+  },
+  gameOverSubtitle: {
+    fontSize: 16,
+    color: '#718096',
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 10,
+  },
+  secondChanceBtn: {
+    width: '100%',
+    backgroundColor: '#0061E0',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  secondChanceText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  freeTag: {
+    position: 'absolute',
+    top: -10,
+    right: 10,
+    backgroundColor: '#38A169',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  freeTagText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+  },
+  secondaryBtn: {
+    width: '100%',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  secondaryBtnText: {
+    color: '#0061E0',
+    fontSize: 18,
+    fontWeight: '600',
   },
   root: {
     flex: 1,
