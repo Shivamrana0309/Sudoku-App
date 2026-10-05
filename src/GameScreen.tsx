@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { generateSudoku } from './utils/sudoku';
@@ -27,6 +27,10 @@ export default function GameScreen() {
   const [mistakes, setMistakes] = useState(0);
   const [time, setTime] = useState(0);
   const [score, setScore] = useState(0);
+
+  const cellAnims = React.useRef(
+    Array.from({length: 9}, () => Array.from({length: 9}, () => new Animated.Value(0)))
+  ).current;
 
   useEffect(() => {
     // Determine difficulty
@@ -99,6 +103,82 @@ export default function GameScreen() {
     }
     
     setBoard(newBoard);
+
+    if (isCorrect) {
+      // Check for completions
+      const isRowComplete = newBoard[r].every(c => c.value !== 0 && !c.isError);
+      const isColComplete = newBoard.every(row => row[c].value !== 0 && !row[c].isError);
+      
+      const boxStartRow = Math.floor(r / 3) * 3;
+      const boxStartCol = Math.floor(c / 3) * 3;
+      let isBoxComplete = true;
+      for (let i = boxStartRow; i < boxStartRow + 3; i++) {
+        for (let j = boxStartCol; j < boxStartCol + 3; j++) {
+          if (newBoard[i][j].value === 0 || newBoard[i][j].isError) {
+            isBoxComplete = false;
+          }
+        }
+      }
+      
+      const cellsToAnimate = new Set<string>();
+      if (isRowComplete) {
+        for (let j = 0; j < 9; j++) cellsToAnimate.add(`${r},${j}`);
+      }
+      if (isColComplete) {
+        for (let i = 0; i < 9; i++) cellsToAnimate.add(`${i},${c}`);
+      }
+      if (isBoxComplete) {
+        for (let i = boxStartRow; i < boxStartRow + 3; i++) {
+          for (let j = boxStartCol; j < boxStartCol + 3; j++) {
+            cellsToAnimate.add(`${i},${j}`);
+          }
+        }
+      }
+      
+      if (cellsToAnimate.size > 0) {
+        const byDistance: { [dist: number]: {i: number, j: number}[] } = {};
+        cellsToAnimate.forEach(key => {
+          const [i, j] = key.split(',').map(Number);
+          const dist = Math.abs(i - r) + Math.abs(j - c);
+          if (!byDistance[dist]) byDistance[dist] = [];
+          byDistance[dist].push({i, j});
+        });
+
+        const maxDist = Math.max(...Object.keys(byDistance).map(Number));
+        const animations: Animated.CompositeAnimation[] = [];
+        
+        for (let d = 0; d <= maxDist; d++) {
+          if (!byDistance[d]) continue;
+          const cellAnimsForDist = byDistance[d].map(({i, j}) => {
+            cellAnims[i][j].setValue(0);
+            return Animated.sequence([
+              Animated.timing(cellAnims[i][j], { toValue: 1, duration: 150, useNativeDriver: true }),
+              Animated.delay(400),
+              Animated.timing(cellAnims[i][j], { toValue: 0, duration: 300, useNativeDriver: true })
+            ]);
+          });
+          animations.push(Animated.parallel(cellAnimsForDist));
+        }
+        
+        Animated.stagger(80, animations).start();
+      }
+    }
+
+    // Check completion
+    const isCompleted = newBoard.every(row => row.every(c => c.value !== 0 && !c.isError));
+    if (isCompleted) {
+      setTimeout(() => {
+        router.push({
+          pathname: '/victory',
+          params: {
+            difficulty: title || 'Beginner',
+            time: formatTime(time),
+            score: score + (cell.value !== num && isCorrect ? 50 : 0),
+            mistakes: mistakes + (!isCorrect ? 1 : 0),
+          }
+        });
+      }, 500);
+    }
   };
 
   const handleErase = () => {
@@ -196,6 +276,7 @@ export default function GameScreen() {
                         isSameNumber && !isSelected && styles.cellSameNumber
                       ]}
                     >
+                      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#62A4F5', opacity: cellAnims[r][c] }]} pointerEvents="none" />
                       <Text style={[
                         styles.cellText,
                         !cell.isInitial && styles.cellTextUser,
