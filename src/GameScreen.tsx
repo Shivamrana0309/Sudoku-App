@@ -32,6 +32,9 @@ export default function GameScreen() {
     Array.from({length: 9}, () => Array.from({length: 9}, () => new Animated.Value(0)))
   ).current;
 
+  const [errorToast, setErrorToast] = useState<{title: string, subtitle: string, type: 'row' | 'col' | 'box' | 'wrong', num: number} | null>(null);
+  const toastAnim = React.useRef(new Animated.Value(-150)).current;
+
   useEffect(() => {
     // Determine difficulty
     let emptyCount = 30; // default Beginner
@@ -98,6 +101,47 @@ export default function GameScreen() {
     
     if (!isCorrect) {
       setMistakes(m => m + 1);
+
+      // Determine mistake reason
+      let reason: 'row' | 'col' | 'box' | 'wrong' = 'wrong';
+      let title = 'Incorrect number!';
+      let subtitle = "This number doesn't belong here.";
+
+      if (board[r].some(cell => cell.value === num && cell.col !== c)) {
+        reason = 'row';
+        title = 'Duplicate in row!';
+        subtitle = 'Fill each row with 1-9, no repeats.';
+      } else if (board.some(row => row[c].value === num && row[c].row !== r)) {
+        reason = 'col';
+        title = 'Duplicate in column!';
+        subtitle = 'Fill each column with 1-9, no repeats.';
+      } else {
+        const boxStartRow = Math.floor(r / 3) * 3;
+        const boxStartCol = Math.floor(c / 3) * 3;
+        let foundBox = false;
+        for (let i = boxStartRow; i < boxStartRow + 3; i++) {
+          for (let j = boxStartCol; j < boxStartCol + 3; j++) {
+            if (board[i][j].value === num && (i !== r || j !== c)) {
+              foundBox = true;
+              break;
+            }
+          }
+        }
+        if (foundBox) {
+          reason = 'box';
+          title = 'Duplicate in box!';
+          subtitle = 'Fill each 3x3 box with 1-9, no repeats.';
+        }
+      }
+
+      setErrorToast({ title, subtitle, type: reason, num });
+      toastAnim.setValue(-150);
+      Animated.sequence([
+        Animated.timing(toastAnim, { toValue: 50, duration: 300, useNativeDriver: true }),
+        Animated.delay(2500),
+        Animated.timing(toastAnim, { toValue: -150, duration: 300, useNativeDriver: true })
+      ]).start(() => setErrorToast(null));
+
     } else if (cell.value !== num) {
       setScore(s => s + 50); // Give some score for correct placement
     }
@@ -224,6 +268,39 @@ export default function GameScreen() {
 
   return (
     <View style={styles.root}>
+      {/* Toast Notification */}
+      {errorToast && (
+        <Animated.View style={[styles.toastContainer, { transform: [{ translateY: toastAnim }] }]}>
+          <View style={styles.toastIconBox}>
+            {errorToast.type === 'col' && (
+              <View style={styles.colErrorShape}>
+                <Text style={[styles.errorNum, {color: '#E53E3E', marginTop: -2}]}>{errorToast.num}</Text>
+                <Text style={[styles.errorNum, {color: '#2D3748', marginBottom: -2}]}>{errorToast.num}</Text>
+              </View>
+            )}
+            {errorToast.type === 'row' && (
+              <View style={styles.rowErrorShape}>
+                <Text style={[styles.errorNum, {color: '#E53E3E'}]}>{errorToast.num}</Text>
+                <Text style={[styles.errorNum, {color: '#2D3748', marginLeft: 6}]}>{errorToast.num}</Text>
+              </View>
+            )}
+            {errorToast.type === 'box' && (
+              <View style={styles.blockErrorShape}>
+                <Text style={[styles.errorNum, {color: '#E53E3E', position: 'absolute', top: 0, left: 3}]}>{errorToast.num}</Text>
+                <Text style={[styles.errorNum, {color: '#2D3748', position: 'absolute', bottom: 0, right: 3}]}>{errorToast.num}</Text>
+              </View>
+            )}
+            {errorToast.type === 'wrong' && (
+              <Ionicons name="close" size={24} color="#E53E3E" />
+            )}
+          </View>
+          <View style={styles.toastTexts}>
+            <Text style={styles.toastTitle}>{errorToast.title}</Text>
+            <Text style={styles.toastSubtitle}>{errorToast.subtitle}</Text>
+          </View>
+        </Animated.View>
+      )}
+
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
@@ -335,6 +412,81 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
+  toastContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+    zIndex: 100,
+  },
+  toastIconBox: {
+    width: 52,
+    height: 52,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  colErrorShape: {
+    width: 20,
+    height: 38,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderColor: '#E53E3E',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  rowErrorShape: {
+    width: 38,
+    height: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderColor: '#E53E3E',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blockErrorShape: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E53E3E',
+  },
+  errorNum: {
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 16,
+  },
+  toastTexts: {
+    flex: 1,
+  },
+  toastTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2D3748',
+    marginBottom: 4,
+  },
+  toastSubtitle: {
+    fontSize: 13,
+    color: '#718096',
+  },
   root: {
     flex: 1,
     backgroundColor: '#F8FAFC',
