@@ -6,89 +6,19 @@ import { useRouter } from 'expo-router';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-type LevelOption = {
-  id: string;
-  title: string;
-  emoji: string;
-  isLocked: boolean;
-  unlockRequirement?: string;
-};
-
-const LEVELS: LevelOption[] = [
-  { id: 'beginner', title: 'Beginner', emoji: '☺️', isLocked: false },
-  { id: 'easy', title: 'Easy', emoji: '🙂', isLocked: false },
-  { id: 'medium', title: 'Medium', emoji: '😐', isLocked: false },
-  { id: 'hard', title: 'Hard', emoji: '😲', isLocked: true, unlockRequirement: 'Complete 3 medium games to unlock' },
-  { id: 'expert', title: 'Expert', emoji: '😰', isLocked: true, unlockRequirement: 'Complete 5 hard games to unlock' },
-  { id: 'extreme', title: 'Extreme', emoji: '😱', isLocked: true, unlockRequirement: 'Complete 10 expert games to unlock' },
-];
-
-const EXTRA_LEVELS: LevelOption[] = [
-  { id: 'fast', title: 'Fast', emoji: '🥳', isLocked: false },
-  { id: '16x16', title: '16x16', emoji: '🤯', isLocked: true },
-];
+import NewGameModal from './components/NewGameModal';
 
 export default function MainScreen() {
   const router = useRouter();
 
   const [isModalVisible, setModalVisible] = useState(false);
-  const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-
   const openModal = () => {
     setModalVisible(true);
-    Animated.parallel([
-      Animated.timing(panY, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(overlayOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      })
-    ]).start();
   };
 
   const closeModal = () => {
-    Animated.parallel([
-      Animated.timing(panY, {
-        toValue: SCREEN_HEIGHT,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(overlayOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      setModalVisible(false);
-    });
+    setModalVisible(false);
   };
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 0,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          panY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
-          closeModal();
-        } else {
-          Animated.spring(panY, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
@@ -173,73 +103,10 @@ export default function MainScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Level Selection Bottom Sheet Overlay */}
-      <Animated.View 
-        pointerEvents={isModalVisible ? 'auto' : 'none'}
-        style={[
-          styles.absoluteOverlay,
-          {
-            opacity: overlayOpacity
-          }
-        ]}
-      >
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeModal} />
-
-        <Animated.View
-          style={[styles.bottomSheet, { transform: [{ translateY: panY }] }]}
-          {...panResponder.panHandlers}
-        >
-          <View style={styles.dragHandle} />
-          <Text style={styles.sheetTitle}>New Game</Text>
-
-          <View style={styles.sheetContent}>
-            {LEVELS.map(level => (
-              <TouchableOpacity
-                key={level.id}
-                style={[styles.levelBtn, level.isLocked && styles.levelBtnLocked]}
-                activeOpacity={0.7}
-                disabled={level.isLocked}
-                onPress={() => {
-                  closeModal();
-                  router.push({ pathname: '/game', params: { level: level.id, title: level.title } });
-                }}
-              >
-                <View style={styles.levelLeft}>
-                  <Text style={styles.levelEmoji}>{level.emoji}</Text>
-                  <View>
-                    <Text style={[styles.levelTitle, level.isLocked && styles.levelTitleLocked]}>{level.title}</Text>
-                    {level.unlockRequirement && (
-                      <Text style={styles.levelSubtitle}>{level.unlockRequirement}</Text>
-                    )}
-                  </View>
-                </View>
-                {level.isLocked && <Ionicons name="lock-closed" size={20} color="#A0AEC0" />}
-              </TouchableOpacity>
-            ))}
-
-            <View style={styles.extraLevelsRow}>
-              {EXTRA_LEVELS.map(level => (
-                <TouchableOpacity
-                  key={level.id}
-                  style={[styles.levelBtnHalf, level.isLocked && styles.levelBtnLocked]}
-                  activeOpacity={0.7}
-                  disabled={level.isLocked}
-                  onPress={() => {
-                    closeModal();
-                    router.push({ pathname: '/game', params: { level: level.id, title: level.title } });
-                  }}
-                >
-                  <View style={styles.levelLeft}>
-                    <Text style={styles.levelEmoji}>{level.emoji}</Text>
-                    <Text style={[styles.levelTitle, level.isLocked && styles.levelTitleLocked]}>{level.title}</Text>
-                  </View>
-                  {level.isLocked && <Ionicons name="lock-closed" size={20} color="#A0AEC0" />}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </Animated.View>
-      </Animated.View>
+      <NewGameModal 
+        isVisible={isModalVisible} 
+        onClose={closeModal} 
+      />
     </View>
   );
 }

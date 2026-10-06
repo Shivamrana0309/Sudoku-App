@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Ani
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { generateSudoku } from './utils/sudoku';
+import NewGameModal from './components/NewGameModal';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_SIZE = SCREEN_WIDTH - 40; // 20 padding on each side
@@ -36,6 +37,7 @@ export default function GameScreen() {
   const toastAnim = React.useRef(new Animated.Value(-150)).current;
 
   const [isGameOverModalVisible, setIsGameOverModalVisible] = useState(false);
+  const [isNewGameModalVisible, setIsNewGameModalVisible] = useState(false);
 
   useEffect(() => {
     if (mistakes >= 3) {
@@ -466,12 +468,21 @@ export default function GameScreen() {
               <Text style={styles.secondaryBtnText}>Restart</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.secondaryBtn}>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={() => {
+              setIsGameOverModalVisible(false);
+              setIsNewGameModalVisible(true);
+            }}>
               <Text style={styles.secondaryBtnText}>New Game</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
+
+      {/* New Game Level Selection Modal */}
+      <NewGameModal 
+        isVisible={isNewGameModalVisible}
+        onClose={() => setIsNewGameModalVisible(false)}
+      />
     </View>
   );
 }
