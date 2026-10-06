@@ -9,12 +9,14 @@ import {
   Dimensions,
   Easing,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const BOARD_SIZE = width * 0.9;
 const CELL_SIZE = BOARD_SIZE / 9;
 
 export default function SudokuTutorialScreen() {
+  const router = useRouter();
   const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
@@ -79,7 +81,17 @@ export default function SudokuTutorialScreen() {
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [phase, step, tickAnim, handOpacity]);
+    // Finish Tutorial
+    if (phase === 3 && step === 3) {
+      const timer = setTimeout(() => {
+        router.push({
+          pathname: "/game",
+          params: { title: "Easy", fromTutorial: "true" }
+        });
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, step, tickAnim, handOpacity, router]);
 
   useEffect(() => {
     if (step === 1 && targetLayout) {

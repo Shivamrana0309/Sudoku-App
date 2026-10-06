@@ -18,7 +18,7 @@ type CellData = {
 
 export default function GameScreen() {
   const router = useRouter();
-  const { level, title } = useLocalSearchParams();
+  const { level, title, fromTutorial } = useLocalSearchParams();
 
   // State
   const [board, setBoard] = useState<CellData[][]>([]);
@@ -33,11 +33,29 @@ export default function GameScreen() {
     Array.from({length: 9}, () => Array.from({length: 9}, () => new Animated.Value(0)))
   ).current;
 
-  const [errorToast, setErrorToast] = useState<{title: string, subtitle: string, type: 'row' | 'col' | 'box' | 'wrong', num: number} | null>(null);
+  const [errorToast, setErrorToast] = useState<{title: string, subtitle: string, type: 'row' | 'col' | 'box' | 'wrong' | 'info', num: number} | null>(null);
   const toastAnim = React.useRef(new Animated.Value(-150)).current;
 
   const [isGameOverModalVisible, setIsGameOverModalVisible] = useState(false);
   const [isNewGameModalVisible, setIsNewGameModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (fromTutorial === 'true') {
+      setErrorToast({
+        title: 'Solve the puzzle',
+        subtitle: 'Good luck applying what you learned!',
+        type: 'info',
+        num: 0
+      });
+      Animated.sequence([
+        Animated.timing(toastAnim, { toValue: 50, duration: 300, useNativeDriver: true }),
+        Animated.delay(2000),
+        Animated.timing(toastAnim, { toValue: -150, duration: 300, useNativeDriver: true })
+      ]).start(() => {
+        setErrorToast(null);
+      });
+    }
+  }, [fromTutorial]);
 
   useEffect(() => {
     if (mistakes >= 3) {
@@ -336,9 +354,12 @@ export default function GameScreen() {
             {errorToast.type === 'wrong' && (
               <Ionicons name="close" size={24} color="#E53E3E" />
             )}
+            {errorToast.type === 'info' && (
+              <Ionicons name="information-circle" size={24} color="#0061E0" />
+            )}
           </View>
           <View style={styles.toastTexts}>
-            <Text style={styles.toastTitle}>{errorToast.title}</Text>
+            <Text style={[styles.toastTitle, errorToast.type === 'info' && {color: '#0061E0'}]}>{errorToast.title}</Text>
             <Text style={styles.toastSubtitle}>{errorToast.subtitle}</Text>
           </View>
         </Animated.View>
@@ -347,7 +368,7 @@ export default function GameScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+          <TouchableOpacity onPress={() => router.replace('/main')} style={styles.iconBtn}>
             <Ionicons name="arrow-back" size={24} color="#4A5568" />
           </TouchableOpacity>
           <View style={styles.headerRight}>
