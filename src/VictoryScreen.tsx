@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import StatisticsModal from './components/StatisticsModal';
 
 export default function VictoryScreen() {
   const router = useRouter();
   const { difficulty = 'Beginner', time = '00:00', score = '0', mistakes = '0' } = useLocalSearchParams();
+  const [isStatsModalVisible, setIsStatsModalVisible] = React.useState(false);
 
   return (
     <View style={styles.root}>
@@ -68,7 +70,7 @@ export default function VictoryScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.statsBtn}>
+          <TouchableOpacity style={styles.statsBtn} onPress={() => setIsStatsModalVisible(true)}>
             <Text style={styles.statsBtnText}>Statistics</Text>
           </TouchableOpacity>
         </View>
@@ -91,6 +93,12 @@ export default function VictoryScreen() {
           </View>
         </View>
       </SafeAreaView>
+
+      {/* Statistics Modal */}
+      <StatisticsModal 
+        isVisible={isStatsModalVisible} 
+        onClose={() => setIsStatsModalVisible(false)} 
+      />
     </View>
   );
 }

@@ -248,6 +248,18 @@ export default function GameScreen() {
     }
   };
 
+  const handleAutoWin = () => {
+    router.push({
+      pathname: '/victory',
+      params: {
+        difficulty: title || 'Beginner',
+        time: formatTime(time),
+        score: score + 500,
+        mistakes: mistakes,
+      }
+    });
+  };
+
   const handleErase = () => {
     if (!selectedCell) return;
     const { r, c } = selectedCell;
@@ -339,6 +351,9 @@ export default function GameScreen() {
             <Ionicons name="arrow-back" size={24} color="#4A5568" />
           </TouchableOpacity>
           <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.iconBtn} onPress={handleAutoWin}>
+              <Ionicons name="rocket-outline" size={24} color="#0061E0" />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn}><Ionicons name="star-outline" size={24} color="#4A5568" /></TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn}><Ionicons name="share-outline" size={24} color="#4A5568" /></TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn}><Ionicons name="color-palette-outline" size={24} color="#4A5568" /></TouchableOpacity>

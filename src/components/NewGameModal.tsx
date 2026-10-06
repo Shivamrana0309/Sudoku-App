@@ -69,8 +69,10 @@ export default function NewGameModal({ isVisible, onClose }: NewGameModalProps) 
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 0,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 5 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
@@ -101,10 +103,11 @@ export default function NewGameModal({ isVisible, onClose }: NewGameModalProps) 
 
       <Animated.View
         style={[styles.bottomSheet, { transform: [{ translateY: panY }] }]}
-        {...panResponder.panHandlers}
       >
-        <View style={styles.dragHandle} />
-        <Text style={styles.sheetTitle}>New Game</Text>
+        <View {...panResponder.panHandlers} style={styles.headerDraggable}>
+          <View style={styles.dragHandle} />
+          <Text style={styles.sheetTitle}>New Game</Text>
+        </View>
 
         <View style={styles.sheetContent}>
           {LEVELS.map(level => (
@@ -179,6 +182,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 40, 
+  },
+  headerDraggable: {
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
   },
   dragHandle: {
     width: 40,
